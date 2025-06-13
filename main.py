@@ -1,12 +1,18 @@
 from playwright.sync_api import Playwright, sync_playwright, expect
 from yt_dlp import YoutubeDL
+
+
+import os
 from rich import print
+
+
+
 def run(playwright: Playwright) -> None:
     
     """Return the link of the playlist of movie clips"""
     
     # Initialize new chromium page
-    browser = playwright.chromium.launch(headless=True)
+    browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
     page = context.new_page()
     
@@ -15,7 +21,7 @@ def run(playwright: Playwright) -> None:
     page.get_by_role("combobox", name="Search").click()
     page.get_by_role("combobox", name="Search").fill("movieclips")
     page.get_by_role("combobox", name="Search").press("Enter")
-    page.get_by_role("link", name="Movieclips tooltip Verified @").click()
+    page.get_by_role("link", name="Movieclips Verified @").click()
     page.get_by_role("link", name="Clips in 4K/UHD").click()
     
     # Navigates to the share button and gets the link
@@ -40,20 +46,34 @@ def download(link):
         if duration >= 180:
             return "duration too long"
         return None
-
+    
+    folder_name = "Movie Clips"
+    os.makedirs(folder_name, exist_ok=True)
     # Defines options dictionary to tell ydl which filters to apply
+    output_path = os.path.join(folder_name, '%(title)s.%(ext)s')
     ydl_opts = {
         'match_filter': get_time,
-        'outtmpl':r"C:\Users\dell\Desktop\Coding\TOP SECRET PROJECTS\Project Movie Clip Uploader\Test\%(title)s.%(ext)s"
-
+        'outtmpl':output_path,
+        'quiet' : True,
+        'playlistend' : 3
     }
-    with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([link])
-        
+    
+    with YoutubeDL({'quiet' : True, 'playlistend' : 3}) as ydl:
+        info = ydl.extract_info(url = r"https://www.youtube.com/playlist?list=PL86SiVwkw_oeDQoAZwcuyoyG43eKWtbJM",download=False)
+        for video in info['entries']:
+            duration = video.get('duration')
+            if duration < 180:
+                print("Getting that one")
+                ydl.download([video.get('id')])
+            else:
+                print("Skipped" , video.get('title'))
+
+
 def main():
     
     with sync_playwright() as playwright:
         link = run(playwright)
+        
     download(link)
     
 
