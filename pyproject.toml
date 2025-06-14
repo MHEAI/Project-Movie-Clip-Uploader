@@ -5,8 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "faster-whisper>=1.1.1",
+    "ffmpeg-python>=0.2.0",
+    "imageio-ffmpeg>=0.6.0",
     "moviepy>=2.2.1",
     "playwright>=1.52.0",
     "rich>=14.0.0",
+    "srt>=3.5.3",
     "yt-dlp>=2025.6.9",
 ]

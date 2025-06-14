@@ -58,8 +58,8 @@ def download(link):
         'playlistend' : 3
     }
     
-    with YoutubeDL({'quiet' : True, 'playlistend' : 3}) as ydl:
-        info = ydl.extract_info(url = r"https://www.youtube.com/playlist?list=PL86SiVwkw_oeDQoAZwcuyoyG43eKWtbJM",download=False)
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url = link,download=False)
         for video in info['entries']:
             duration = video.get('duration')
             if duration < 180:
