@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Personal Information
+client_secrets.json
+token.json
