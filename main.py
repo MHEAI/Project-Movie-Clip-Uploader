@@ -1,41 +1,72 @@
-from playwright.sync_api import Playwright, sync_playwright, expect
+from faster_whisper import WhisperModel
+import time
+import math
+import ffmpeg
+import yt_dlp
 from yt_dlp import YoutubeDL
-
-
 import os
-from rich import print
+from yt_dlp.utils import sanitize_filename
+from subprocess import run as r
+from pathlib import Path
+import srt
 
+def convert_to_portrait(input_path):
+    p = Path(input_path)
+    output_path = str(p.with_name(p.stem + "_portrait" + p.suffix))
+    command = [
+    "ffmpeg",
+    "-i", input_path,
+    "-vf", "crop=ih*9/16:ih,scale=1080:1920",
+    "-c:a", "copy",
+    output_path
+    ]
+    r(command)
+    return output_path
 
+def convert_to_ass(srt_file, ass_file):
+    print("Converting to Ass")
+    with open(srt_file, 'r') as f:
+        subtitles = list(srt.parse(f.read()))
+    with open(ass_file,"w") as f:
+        f.write("[Script Info]\n\n[V4+ Styles]\n")
+        f.write("Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
+        f.write("Style: Default,Arial,20,&H00FFFFFF,&H00000000,1,1,0,2,50,50,20,3\n\n")
+        f.write("[Events]\n")
+        f.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
 
-def run(playwright: Playwright) -> None:
+        for sub in subtitles:
+            start = str(sub.start).replace(',', '.')[:-3]
+            end = str(sub.end).replace(',', '.')[:-3]
+            text = sub.content.replace('\n', '\\N')
+            f.write(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n")
+        return ass_file
+        
+        
+        
+        
+def download_and_upload(playlist):
     
-    """Return the link of the playlist of movie clips"""
+    folder_name = "Movie Clips"
+    os.makedirs(folder_name, exist_ok=True)
+    output_path = os.path.join(folder_name, '%(title)s.%(ext)s')
     
-    # Initialize new chromium page
-    browser = playwright.chromium.launch(headless=False)
-    context = browser.new_context()
-    page = context.new_page()
+    def download_audio_and_video(link):
+        print("Downloading")
+        """Downloads Youtube Video as Opus file for audio and Mp4 for video"""
+        with yt_dlp.YoutubeDL({
+            'format': 'bestvideo+bestaudio/best',
+            'merge_output_format': 'mp4',
+            'outtmpl': output_path
+        }) as ydl:
+            info = ydl.extract_info(link, download=True)
+            base_title = sanitize_filename(info['title'])
+            video_file = os.path.join(folder_name,f"{base_title}.mp4")
+
+        audio_file = os.path.join(folder_name,f"{base_title}.opus")
+        ffmpeg.input(video_file).output(audio_file, acodec='copy').run(overwrite_output=True)
+        video_file = convert_to_portrait(video_file)
+        return video_file, audio_file
     
-    # Navigate To MovieClips Channel Clips Playlist
-    page.goto("https://www.youtube.com/")
-    page.get_by_role("combobox", name="Search").click()
-    page.get_by_role("combobox", name="Search").fill("movieclips")
-    page.get_by_role("combobox", name="Search").press("Enter")
-    page.get_by_role("link", name="Movieclips Verified @").click()
-    page.get_by_role("link", name="Clips in 4K/UHD").click()
-    
-    # Navigates to the share button and gets the link
-    page.get_by_role("button", name="Share").click()
-    page.wait_for_selector("""xpath=//*[@id="share-url"]""")
-    share_link = page.locator("""xpath=//*[@id="share-url"]""").input_value()
-    context.close()
-    browser.close()
-    
-    #Splits the link to get ID
-    share_link = share_link.split("list=")[1]
-    
-    return share_link
-def download(link):
     def get_time(info):
         
         """Returns whether the duration is viable for downloading"""
@@ -47,36 +78,120 @@ def download(link):
             return "duration too long"
         return None
     
-    folder_name = "Movie Clips"
-    os.makedirs(folder_name, exist_ok=True)
-    # Defines options dictionary to tell ydl which filters to apply
-    output_path = os.path.join(folder_name, '%(title)s.%(ext)s')
-    ydl_opts = {
-        'match_filter': get_time,
-        'outtmpl':output_path,
-        'quiet' : True,
-        'playlistend' : 3
-    }
     
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url = link,download=False)
-        for video in info['entries']:
-            duration = video.get('duration')
-            if duration < 180:
-                print("Getting that one")
-                ydl.download([video.get('id')])
-            else:
-                print("Skipped" , video.get('title'))
 
+    
+
+    def format_time(seconds):
+
+        hours = math.floor(seconds / 3600)
+        seconds %= 3600
+        minutes = math.floor(seconds / 60)
+        seconds %= 60
+        milliseconds = round((seconds - math.floor(seconds)) * 1000)
+        seconds = math.floor(seconds)
+        formatted_time = f"{hours:02d}:{minutes:02d}:{seconds:01d},{milliseconds:03d}"
+
+        return formatted_time
+    def generate_subtitle_file(language, segments):
+        print("Generating Subtitle File")
+        subtitle_file = f"sub--pythonargs.{language}.srt"
+        text = ""
+        for index, segment in enumerate(segments):
+            segment_start = format_time(segment.start)
+            segment_end = format_time(segment.end)
+            text += f"{str(index+1)} \n"
+            text += f"{segment_start} --> {segment_end} \n"
+            text += f"{segment.text} \n"
+            text += "\n"
+            
+        f = open(subtitle_file, "w", encoding= "utf-8")
+        f.write(text)
+        f.close()
+
+        return subtitle_file
+    def transcribe(audio):
+        print("Transcribing")
+        model = WhisperModel("tiny")
+        segments,info = model.transcribe(audio)
+        language = info.language
+        print("Transcription Language", info.language)
+        segments = list(segments)
+        for segment in segments:
+            # print(segment)
+            print("[%.2fs -> %.2fs] %s"
+                % (segment.start, segment.end, segment.text))
+        return language, segments
+
+
+    def add_subtitle_to_video(soft_subtitle, subtitle_file, subtitle_language, video):
+        print("Adding Subtitle to Video")
+        video_input_stream = ffmpeg.input(video)
+        vid_name = video.replace(".mp4","")
+        output_video = f"{vid_name}_subbed.mp4"
+        subtitle_file = convert_to_ass(subtitle_file, ("STYLED" + subtitle_file ))
+        subtitle_track_title = subtitle_file.replace(".srt", "")
+        try:
+            if soft_subtitle:
+                stream = (
+                    ffmpeg
+                    .output(
+                        video_input_stream,
+                        output_video,
+                        vf=f"subtitles='{subtitle_file}'",  
+                        **{"c:a": "copy"},
+                        **{f"metadata:s:s:0": f"language={subtitle_language}", f"metadata:s:s:0": f"title={subtitle_track_title}"}
+                    )
+                )
+            else:
+                stream = ffmpeg.output(
+                    video_input_stream,
+                    output_video,
+                    vf=f"subtitles='{subtitle_file}'"
+                )
+            ffmpeg.run(stream, overwrite_output=True)
+        except ffmpeg.Error as e:
+            print("dummy you did big error")
+    def run():
+        ydl_opts = {
+            'match_filter': get_time,
+            'outtmpl':output_path,
+            'quiet' : True
+            # ,'playlistend' : 3
+        }
+        
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url = playlist,download=False)
+            for video in info['entries']:
+                id = sanitize_filename(video.get("id"))
+                duration = video.get('duration')
+                if duration < 180:
+                    print("Getting that one")
+                    video_path, audio_path = download_audio_and_video(id)
+                    language, segments = transcribe(audio=audio_path)
+                    subtitle_file = generate_subtitle_file(
+                        language=language,
+                        segments=segments
+                    )
+                    add_subtitle_to_video(
+                    soft_subtitle=True,
+                    subtitle_file=subtitle_file,
+                    subtitle_language=language,
+                    video = video_path
+                    )
+                    #Yotube_upload(edited_footage)
+                    os.remove(video_path)
+                    os.remove(audio_path)
+                    os.remove(subtitle_file)
+                else:
+                    print("Skipped" , video.get('title'))
+        
+    run()
 
 def main():
-    
-    with sync_playwright() as playwright:
-        link = run(playwright)
-        
-    download(link)
-    
+    download_and_upload("https://www.youtube.com/watch?v=2S4CF9cBYZ8&list=PL86SiVwkw_ofayKHT1CLKEmH-Yq9Eh310")
 
-    print(link)
+
+
 if __name__ == "__main__":
-    main()
+   main()
