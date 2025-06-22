@@ -10,6 +10,76 @@ from subprocess import run as r
 from pathlib import Path
 import srt
 
+
+import re
+import random
+
+def summarize_title(text):
+    junk_words = [
+    "4K", "HD", "1080p", "UHD", "Movieclips", "Official", "Clip",
+    "Trailer", "Scene", "Full Movie", "Ending", "Final", "Fight", "Ending Scene",
+    "Ultra", "HDTV", "Remastered", "Extended", "Bluray", "Blu-ray", "DVDRip",
+    "CAM", "TS", "WEBRip", "WEB-DL", "HDRip", "HEVC", "X264", "X265",
+    "Director's Cut", "Subbed", "Dubbed", "Netflix", "Amazon", "HBO",
+    "HD-TS", "HD-CAM", "HQ", "WEB", "DVDScr", "PAL", "NTSC"
+    ]
+    
+    catchy_words = [
+    "Cool", "Insane", "Exciting",
+    "Epic", "Unbelievable", "Crazy", "Must Watch", "Shocking",
+    "Jaw-Dropping", "Hilarious", "Mind-Blowing", "Amazing",
+    "Intense", "Legendary", "Wild", "Ultimate", "Iconic",
+    "Thrilling", "Unexpected", "Breathtaking", "Fast-Paced",
+    "Funny", "Dramatic", "Powerful", "Legendary", "Classic"
+    ]
+    hashtags = "#Shorts #MovieClips #EpicScenes #MustWatch #FilmLovers"
+    
+    for word in junk_words:
+        text = re.sub(rf"\b{re.escape(word)}\b", "", text, flags=re.IGNORECASE)
+    
+    text = re.sub(r"[\[\]\(\)\|:\-]", " ", text)
+    
+    text = re.sub(r"\s+", " ", text).strip()
+    
+    text = re.sub(r"\s*[\(\-]?(19|20)\d{2}[\)\-]?\s*", " ", text)
+    
+    text = re.sub(r"\s+", " ", text).strip()
+    
+    text = f"{text} {random.choice(catchy_words)} Scene {hashtags}"
+    
+    return text
+
+
+def upload_to_youtube(file,title):
+    description = (r"""🔥 Watch more amazing movie moments every day! 🔥
+Catch the coolest scenes, epic fights, and unforgettable moments from your favorite films.
+
+🎬 Don’t forget to Subscribe for daily Shorts!
+👇 Check out more clips here: MovieBytes
+
+#Shorts #MovieClips #EpicScenes #MustWatch #FilmLovers""")
+    keywords = [
+    "movie clips",
+    "movie scenes",
+    "epic scenes",
+    "funny movie clips",
+    "action scenes",
+    "classic movie moments",
+    "must watch",
+    "viral",
+    "trending",
+    "best of",
+    "top moments",
+    "unbelievable",
+    "new release",
+    "behind the scenes",
+    "exclusive clip"
+    ]
+    keyword_string = ",".join(keywords)
+
+    command = ["python","upload_video.py","--file",file,"--title",title,"--description",description,"--keywords",keyword_string,"--category","24"]
+    r(command)
+    
 def convert_to_portrait(input_path):
     p = Path(input_path)
     output_path = str(p.with_name(p.stem + "_portrait" + p.suffix))
@@ -23,23 +93,40 @@ def convert_to_portrait(input_path):
     r(command)
     return output_path
 
+def srt_to_ass_time(srt_time):
+    # srt_time is a datetime.timedelta object from the srt library
+    total_seconds = srt_time.total_seconds()
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    seconds = int(total_seconds % 60)
+    milliseconds = int(round((total_seconds - int(total_seconds)) * 1000))
+    centiseconds = int(round(milliseconds / 10))
+    return f"{hours}:{minutes:02d}:{seconds:02d}.{centiseconds:02d}"
+
 def convert_to_ass(srt_file, ass_file):
     print("Converting to Ass")
-    with open(srt_file, 'r') as f:
+    with open(srt_file, 'r', encoding="utf-8") as f:
         subtitles = list(srt.parse(f.read()))
-    with open(ass_file,"w") as f:
-        f.write("[Script Info]\n\n[V4+ Styles]\n")
+    with open(ass_file, "w", encoding="utf-8") as f:
+        f.write("[Script Info]\n")
+        f.write("PlayResX: 1080\n")
+        f.write("PlayResY: 1920\n\n")
+        
+        f.write("[V4+ Styles]\n")
         f.write("Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
-        f.write("Style: Default,Arial,20,&H00FFFFFF,&H00000000,1,1,0,2,50,50,20,3\n\n")
+        f.write("Style: Default,Arial,50,&H00FFFFFF,&H00000000,1,1,0,5,50,50,100,3\n\n")
+        
         f.write("[Events]\n")
         f.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
 
         for sub in subtitles:
-            start = str(sub.start).replace(',', '.')[:-3]
-            end = str(sub.end).replace(',', '.')[:-3]
+            start = srt_to_ass_time(sub.start)
+            end = srt_to_ass_time(sub.end)
             text = sub.content.replace('\n', '\\N')
             f.write(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}\n")
-        return ass_file
+
+    return ass_file
+
         
         
         
@@ -95,7 +182,7 @@ def download_and_upload(playlist):
         return formatted_time
     def generate_subtitle_file(language, segments):
         print("Generating Subtitle File")
-        subtitle_file = f"sub--pythonargs.{language}.srt"
+        subtitle_file = f"{sanitize_filename(language)}_{random.randint(1000,9999)}.srt"
         text = ""
         for index, segment in enumerate(segments):
             segment_start = format_time(segment.start)
@@ -112,7 +199,7 @@ def download_and_upload(playlist):
         return subtitle_file
     def transcribe(audio):
         print("Transcribing")
-        model = WhisperModel("tiny")
+        model = WhisperModel("large")
         segments,info = model.transcribe(audio)
         language = info.language
         print("Transcription Language", info.language)
@@ -139,7 +226,7 @@ def download_and_upload(playlist):
                         video_input_stream,
                         output_video,
                         vf=f"subtitles='{subtitle_file}'",  
-                        **{"c:a": "copy"},
+                        **{"c:v": "libx264", "c:a": "aac"},
                         **{f"metadata:s:s:0": f"language={subtitle_language}", f"metadata:s:s:0": f"title={subtitle_track_title}"}
                     )
                 )
@@ -152,6 +239,8 @@ def download_and_upload(playlist):
             ffmpeg.run(stream, overwrite_output=True)
         except ffmpeg.Error as e:
             print("dummy you did big error")
+            
+        return output_video
     def run():
         ydl_opts = {
             'match_filter': get_time,
@@ -165,31 +254,31 @@ def download_and_upload(playlist):
             for video in info['entries']:
                 id = sanitize_filename(video.get("id"))
                 duration = video.get('duration')
-                if duration < 180:
+                if duration < 60:
                     print("Getting that one")
                     video_path, audio_path = download_audio_and_video(id)
                     language, segments = transcribe(audio=audio_path)
-                    subtitle_file = generate_subtitle_file(
-                        language=language,
-                        segments=segments
-                    )
-                    add_subtitle_to_video(
-                    soft_subtitle=True,
-                    subtitle_file=subtitle_file,
-                    subtitle_language=language,
-                    video = video_path
-                    )
-                    #Yotube_upload(edited_footage)
+                    subtitle_file = generate_subtitle_file(language=language, segments=segments)
+                    final_video = add_subtitle_to_video(False, subtitle_file, language, video_path)
+                    title = summarize_title(video.get("title"))
+                    if len(title) > 100:
+                        len_above_limit = len(title) - 100
+                        title = title[:len_above_limit]
+                    print("Uploading with title:", title)
+                    upload_to_youtube(final_video, title)
+
                     os.remove(video_path)
                     os.remove(audio_path)
                     os.remove(subtitle_file)
                 else:
-                    print("Skipped" , video.get('title'))
+                    print("Skipped", video.get('title'))
+
+        
         
     run()
 
 def main():
-    download_and_upload("https://www.youtube.com/watch?v=2S4CF9cBYZ8&list=PL86SiVwkw_ofayKHT1CLKEmH-Yq9Eh310")
+    download_and_upload("https://www.youtube.com/watch?v=pYy0f4N2sVE&list=PL86SiVwkw_oeDQoAZwcuyoyG43eKWtbJM")
 
 
 

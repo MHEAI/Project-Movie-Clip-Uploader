@@ -12,3 +12,6 @@ wheels/
 # Personal Information
 client_secrets.json
 token.json
+
+# Test Folders
+Movie Clips/
