@@ -3,6 +3,7 @@ import time
 import math
 import ffmpeg
 import yt_dlp
+from yt_dlp.utils import DownloadError
 from yt_dlp import YoutubeDL
 import os
 from yt_dlp.utils import sanitize_filename
@@ -10,6 +11,7 @@ from subprocess import run as r
 from pathlib import Path
 import srt
 
+from moviepy.video.io.VideoFileClip import VideoFileClip
 
 import re
 import random
@@ -133,6 +135,8 @@ def convert_to_ass(srt_file, ass_file):
         
 def download_and_upload(playlist):
     
+    
+    print("Starting Upload")
     folder_name = "Movie Clips"
     os.makedirs(folder_name, exist_ok=True)
     output_path = os.path.join(folder_name, '%(title)s.%(ext)s')
@@ -140,15 +144,25 @@ def download_and_upload(playlist):
     def download_audio_and_video(link):
         print("Downloading")
         """Downloads Youtube Video as Opus file for audio and Mp4 for video"""
-        with yt_dlp.YoutubeDL({
-            'format': 'bestvideo+bestaudio/best',
-            'merge_output_format': 'mp4',
-            'outtmpl': output_path
-        }) as ydl:
-            info = ydl.extract_info(link, download=True)
-            base_title = sanitize_filename(info['title'])
-            video_file = os.path.join(folder_name,f"{base_title}.mp4")
+        try : 
+            with yt_dlp.YoutubeDL({
+                'format': 'bestvideo+bestaudio/best',
+                'merge_output_format': 'mp4',
+                'outtmpl': output_path
+            }) as ydl:
+                info = ydl.extract_info(link, download=True)
+        except DownloadError as e :
+            print(f"Download error {e}" )
+            raise e
+        except Exception as e:
+            print(f"Other error {e}")
+            raise e
+        base_title = sanitize_filename(info['title'], restricted=True)
+        video_file = ydl.prepare_filename(info)
 
+        if not os.path.exists(video_file):
+            print(f"Video file does not exist {video_file}")
+            raise FileNotFoundError(f"{video_file} not found")
         audio_file = os.path.join(folder_name,f"{base_title}.opus")
         ffmpeg.input(video_file).output(audio_file, acodec='copy').run(overwrite_output=True)
         video_file = convert_to_portrait(video_file)
@@ -199,7 +213,7 @@ def download_and_upload(playlist):
         return subtitle_file
     def transcribe(audio):
         print("Transcribing")
-        model = WhisperModel("large")
+        model = WhisperModel("tiny")
         segments,info = model.transcribe(audio)
         language = info.language
         print("Transcription Language", info.language)
@@ -242,45 +256,75 @@ def download_and_upload(playlist):
             
         return output_video
     def run():
+        print("Starting Running")
+        nonlocal output_path
         ydl_opts = {
             'match_filter': get_time,
             'outtmpl':output_path,
-            'quiet' : True
+            'quiet' : True,
+            'playliststart' : 1,
+            'ignoreerrors' :True
             # ,'playlistend' : 3
         }
         
         with YoutubeDL(ydl_opts) as ydl:
+            print("Starting extraction")
             info = ydl.extract_info(url = playlist,download=False)
             for video in info['entries']:
+                print("Starting loop")
+                
+                if video is None:
+                    print("Skipped cus prob not available tbh")
+                    continue
+                if video.get("availability") == "private" or video.get("is_private") or video.get("availability") == "unavailable":
+                    print(f"Skipped {video.get('id')} because it is private or unavailable")
+                    continue
+                title = summarize_title(video.get("title"))
                 id = sanitize_filename(video.get("id"))
-                duration = video.get('duration')
-                if duration < 60:
-                    print("Getting that one")
+                
+                try:
                     video_path, audio_path = download_audio_and_video(id)
-                    language, segments = transcribe(audio=audio_path)
-                    subtitle_file = generate_subtitle_file(language=language, segments=segments)
-                    final_video = add_subtitle_to_video(False, subtitle_file, language, video_path)
-                    title = summarize_title(video.get("title"))
-                    if len(title) > 100:
-                        len_above_limit = len(title) - 100
-                        title = title[:len_above_limit]
-                    print("Uploading with title:", title)
-                    upload_to_youtube(final_video, title)
+                except DownloadError as e:
+                    print(f"Skipped {id} due to this error {e}")
+                    continue
+                except Exception as e:
+                    print(f"Some other failure {e}")
+                    continue
+            
+                
+                
+                
+                language, segments = transcribe(audio=audio_path)
+                subtitle_file = generate_subtitle_file(language=language, segments=segments)
+                final_video = add_subtitle_to_video(False, subtitle_file, language, video_path)
+                
+                with VideoFileClip(final_video) as video:
+                    subclip = video.subclipped(0,60)
+                    p = Path(final_video)
+                    output_path = str(p.with_name(p.stem + "_clipped" + p.suffix))
+                    subclip.write_videofile(output_path, codec="libx264", audio_codec="aac")
 
-                    os.remove(video_path)
-                    os.remove(audio_path)
-                    os.remove(subtitle_file)
-                else:
-                    print("Skipped", video.get('title'))
+                
+                
+                if len(title) > 100:
+                    title = title[:100]
+                print("Uploading with title:", title)
+                upload_to_youtube(output_path, title)
+
+                os.remove(video_path)
+                os.remove(audio_path)
+                os.remove(subtitle_file)
 
         
         
     run()
 
 def main():
+    print("Starting Upload")
     download_and_upload("https://www.youtube.com/watch?v=pYy0f4N2sVE&list=PL86SiVwkw_oeDQoAZwcuyoyG43eKWtbJM")
 
 
 
 if __name__ == "__main__":
+   print("Starting main loop")
    main()
