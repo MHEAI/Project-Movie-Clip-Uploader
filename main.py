@@ -15,41 +15,70 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 
 import re
 import random
+import requests
+import json
 
-def summarize_title(text):
-    junk_words = [
-    "4K", "HD", "1080p", "UHD", "Movieclips", "Official", "Clip",
-    "Trailer", "Scene", "Full Movie", "Ending", "Final", "Fight", "Ending Scene",
-    "Ultra", "HDTV", "Remastered", "Extended", "Bluray", "Blu-ray", "DVDRip",
-    "CAM", "TS", "WEBRip", "WEB-DL", "HDRip", "HEVC", "X264", "X265",
-    "Director's Cut", "Subbed", "Dubbed", "Netflix", "Amazon", "HBO",
-    "HD-TS", "HD-CAM", "HQ", "WEB", "DVDScr", "PAL", "NTSC"
-    ]
-    
-    catchy_words = [
-    "Cool", "Insane", "Exciting",
-    "Epic", "Unbelievable", "Crazy", "Must Watch", "Shocking",
-    "Jaw-Dropping", "Hilarious", "Mind-Blowing", "Amazing",
-    "Intense", "Legendary", "Wild", "Ultimate", "Iconic",
-    "Thrilling", "Unexpected", "Breathtaking", "Fast-Paced",
-    "Funny", "Dramatic", "Powerful", "Legendary", "Classic"
-    ]
-    hashtags = "#Shorts #MovieClips #EpicScenes #MustWatch #FilmLovers"
-    
-    for word in junk_words:
-        text = re.sub(rf"\b{re.escape(word)}\b", "", text, flags=re.IGNORECASE)
-    
-    text = re.sub(r"[\[\]\(\)\|:\-]", " ", text)
-    
-    text = re.sub(r"\s+", " ", text).strip()
-    
-    text = re.sub(r"\s*[\(\-]?(19|20)\d{2}[\)\-]?\s*", " ", text)
-    
-    text = re.sub(r"\s+", " ", text).strip()
-    
-    text = f"{text} {random.choice(catchy_words)} Scene {hashtags}"
-    
-    return text
+def talk_to_bot(prompt_id, title):
+    prompts = {
+        1: f"""You are a title cleanup tool. Given this movie clip title:
+
+{title}
+
+Perform these steps:
+
+- Remove junk words like "4K", "HD", "Trailer", "Movieclips", etc.
+- Remove special characters such as brackets, pipes, colons, and dashes.
+- Remove year indicators like "2006" or "2020".
+- Normalize whitespace.
+- Add a random catchy adjective like "Epic" or "Legendary" plus the word "Scene".
+- remove the original thing and Then summarize what this entire process does in a cool, catchy tagline that includes the movie name and the clip's main premise dont over do it.
+- Append hashtags: #Shorts #MovieClips   #FilmLovers. to the very end
+
+
+
+dont add asterisks
+
+
+
+dont make it more than 100 characters
+
+Return only one plain string combining the cleaned title with hashtags and the tagline. No extra explanation or multiple options.
+
+double check the length and make sure it isnt more than 100 characters
+"""
+    }
+
+    if prompt_id not in prompts:
+        raise ValueError(f"Prompt ID {prompt_id} not found in prompt list.")
+
+    prompt = prompts[prompt_id]
+
+    response = requests.post(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": "Bearer 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",
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({
+            "model": "mistralai/mistral-small-3.2-24b-instruct:free",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        })
+    )
+
+    data = response.json()
+    if "choices" not in data:
+        print("API error:", data)
+        return None
+
+    return data["choices"][0]["message"]["content"]
+
+def summarize_title(text, prompt_id=1):
+    return talk_to_bot(prompt_id, text)
 
 
 def upload_to_youtube(file,title):
@@ -279,9 +308,9 @@ def download_and_upload(playlist):
                 if video.get("availability") == "private" or video.get("is_private") or video.get("availability") == "unavailable":
                     print(f"Skipped {video.get('id')} because it is private or unavailable")
                     continue
-                title = summarize_title(video.get("title"))
+                title = summarize_title(video.get("title"), 1)
                 id = sanitize_filename(video.get("id"))
-                
+            
                 try:
                     video_path, audio_path = download_audio_and_video(id)
                 except DownloadError as e:
