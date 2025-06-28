@@ -1,22 +1,29 @@
 from faster_whisper import WhisperModel
-import time
-import math
-import ffmpeg
-import yt_dlp
-from yt_dlp.utils import DownloadError
-from yt_dlp import YoutubeDL
-import os
-from yt_dlp.utils import sanitize_filename
-from subprocess import run as r
-from pathlib import Path
 import srt
 
-from moviepy.video.io.VideoFileClip import VideoFileClip
-
+import time
+import math
+import os
+from pathlib import Path
 import re
 import random
 import requests
 import json
+
+import ffmpeg
+import yt_dlp
+from yt_dlp.utils import DownloadError
+from yt_dlp import YoutubeDL
+
+
+from yt_dlp.utils import sanitize_filename
+from subprocess import run as r
+
+
+
+from moviepy.video.io.VideoFileClip import VideoFileClip
+
+
 
 def talk_to_bot(prompt_id, title):
     prompts = {
@@ -207,6 +214,7 @@ def download_and_upload(playlist):
         if duration >= 180:
             return "duration too long"
         return None
+    
     
     
 

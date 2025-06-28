@@ -1,0 +1,2 @@
+class TitleCleaner:
+    pass
