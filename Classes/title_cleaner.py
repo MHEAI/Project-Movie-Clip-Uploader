@@ -7,9 +7,7 @@ class TitleCleaner:
         pass
     
     def clean_and_summarize_title(self,title):
-        prompt = {
-            
-            f"""You are a title cleanup tool. Given this movie clip title:
+        prompt = f"""You are a title cleanup tool. Given this movie clip title:
 
 {title}
 
@@ -37,11 +35,11 @@ double check the length and make sure it isnt more than 100 characters
 """
         
         
-        }
+        
         response = post(
             url="https://openrouter.ai/api/v1/chat/completions",
         headers={
-            "Authorization": "Bearer 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",
+            "Authorization": "Bearer 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",
             "Content-Type": "application/json",
         },
         data=dumps({

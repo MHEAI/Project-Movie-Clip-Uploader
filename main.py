@@ -114,7 +114,7 @@ Catch the coolest scenes, epic fights, and unforgettable moments from your favor
     "exclusive clip"
     ]
     keyword_string = ",".join(keywords)
-
+    
     command = ["python","upload_video.py","--file",file,"--title",title,"--description",description,"--keywords",keyword_string,"--category","24"]
     r(command)
     
@@ -143,6 +143,7 @@ def srt_to_ass_time(srt_time):
 
 def convert_to_ass(srt_file, ass_file):
     print("Converting to Ass")
+    ass_file = ("STYLED" + srt_file )
     with open(srt_file, 'r', encoding="utf-8") as f:
         subtitles = list(srt.parse(f.read()))
     with open(ass_file, "w", encoding="utf-8") as f:
