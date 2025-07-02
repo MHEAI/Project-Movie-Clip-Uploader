@@ -39,7 +39,7 @@ double check the length and make sure it isnt more than 100 characters
         response = post(
             url="https://openrouter.ai/api/v1/chat/completions",
         headers={
-            "Authorization": "Bearer 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",
+            "Authorization": "Bearer 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",
             "Content-Type": "application/json",
         },
         data=dumps({
@@ -57,6 +57,15 @@ double check the length and make sure it isnt more than 100 characters
         if "choices" not in data:
             print("API error:", data)
             return None
-        return data["choices"][0]["message"]["content"]
+        raw_title = data["choices"][0]["message"]["content"]
+        
+        if not raw_title:
+            raise ValueError("TitleCleaner returned an empty title.")
+
+        if len(raw_title) > 100:
+            raw_title = raw_title[:97] + "..."
+
+        print("Cleaned title:", repr(raw_title))
+        return raw_title
     
         
