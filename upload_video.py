@@ -45,7 +45,7 @@ def initialize_upload(youtube, options):
         },
         "status": {
             "privacyStatus": options.privacyStatus,
-            "selfDeclaredMadeForKids": True
+            "selfDeclaredMadeForKids": False
         },
     }
     insert_request = youtube.videos().insert(
