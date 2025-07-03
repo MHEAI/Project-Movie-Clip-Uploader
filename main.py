@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request
-
 from Classes.youtube_downloader import YoutubeDownloader 
 from Classes.title_cleaner import TitleCleaner
 from Classes.video_editor import VideoEditor
@@ -9,13 +8,28 @@ from Classes.utils import Utilities
 
 app = Flask(__name__)
 
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    playlist = None
-    if request.method == 'POST':
-        playlist = request.form['playlist_name']
-        main(playlist)
-    return render_template('index.html', playlist_name=playlist)
+    return render_template('index.html')
+
+@app.route('/process', methods = ['POST','GET'])
+def process_form():
+    option = request.form.get('option')
+    
+    if option == 'playlist':
+        playlist_url  = request.form.get("playlistUrl")
+        main(playlist_url)
+    
+    elif option == 'upload':
+        movie_file = request.files.get('movieFile')
+        
+        print(f"Acting like i am processing the file as the func has not been created yet: {movie_file}")
+        
+    return "Cool"
+        
+
+
 
 def main(playlist):
 
