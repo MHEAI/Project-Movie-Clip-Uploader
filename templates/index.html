@@ -118,7 +118,28 @@
             </div>
             <div id="fileInfo" class="file-info hidden"></div>
           </div>
-
+          <div class="form-section">
+            <label for="video-count" class="section-label">
+              <span class="bullet"></span>
+              Number of Videos
+            </label>
+            <input
+              type="number"
+              id="video-count"
+              name="videoCount"
+              placeholder="Enter number of videos to process"
+              class="input-field"
+              min="1"
+              max="100"
+              value="1"
+              required
+            />
+            <div class="input-help">
+              <span id="videoCountHelp"
+                >Specify how many videos to process from the playlist</span
+              >
+            </div>
+          </div>
           <button type="submit" class="submit-button">
             <span id="buttonText">Analyze Playlist</span>
           </button>

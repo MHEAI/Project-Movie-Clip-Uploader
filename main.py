@@ -19,6 +19,8 @@ def process_form():
     
     if option == 'playlist':
         playlist_url  = request.form.get("playlistUrl")
+        amount_of_vids = request.form.get("videoCount")
+        print(amount_of_vids)
         main(playlist_url)
     
     elif option == 'upload':
