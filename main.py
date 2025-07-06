@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash,redirect,url_for,jsonify
+from time import sleep
 from Classes.youtube_downloader import YoutubeDownloader 
 from Classes.title_cleaner import TitleCleaner
 from Classes.video_editor import VideoEditor
@@ -19,21 +20,19 @@ def process_form():
     
     if option == 'playlist':
         playlist_url  = request.form.get("playlistUrl")
-        amount_of_vids = request.form.get("videoCount")
+        amount_of_vids = int(request.form.get("videoCount"))
         print(amount_of_vids)
-        main(playlist_url)
+        video_file = main(playlist_url,amount_of_vids)
     
     elif option == 'upload':
         movie_file = request.files.get('movieFile')
         
         print(f"Acting like i am processing the file as the func has not been created yet: {movie_file}")
+    return jsonify({"message": "", "success": True})
+    
         
-    return "Cool"
-        
 
-
-
-def main(playlist):
+def main(playlist,max_vids):
 
     downloader = YoutubeDownloader()
     title_cleaner = TitleCleaner()
@@ -43,8 +42,10 @@ def main(playlist):
     utilizer = Utilities()
 
     info = downloader.extract_playlist(playlist)
-
-    for video in info['entries']:
+    
+    for i,video in enumerate(info['entries']):
+        if i > max_vids:
+            break
         if not video:
             continue
 
@@ -90,6 +91,6 @@ def main(playlist):
             srt_file,
             ass_file
         ])
-
+        return video_file
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True) 

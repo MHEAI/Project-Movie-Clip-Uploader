@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('mediaForm');
     const playlistRadio = document.getElementById('playlist');
@@ -6,40 +5,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const playlistSection = document.getElementById('playlistSection');
     const uploadSection = document.getElementById('uploadSection');
     const buttonText = document.getElementById('buttonText');
-    const supportText = document.getElementById('supportText');
     const fileInput = document.getElementById('movie-file');
     const fileInfo = document.getElementById('fileInfo');
     const videoCountHelp = document.getElementById('videoCountHelp');
-    // Handle radio button changes
+    function showProcessingComplete(message, isSuccess = true) {
+    const statusElement = document.getElementById('processingStatus');
+    const statusMessage = document.getElementById('statusMessage');
+    const statusIcon = statusElement.querySelector('.status-icon');
+    const statusTitle = statusElement.querySelector('.status-title');
+
+    // Remove the 'hidden' class to show the status
+    statusElement.classList.remove('hidden');
+
+    if (isSuccess === true || isSuccess === "true") {
+        statusElement.style.background = 'linear-gradient(135deg, #dcfdf7 0%, #f0fdf4 100%)';
+        statusElement.style.borderColor = '#a7f3d0';
+        statusIcon.style.backgroundColor = '#10b981';
+        statusTitle.textContent = 'Processing Complete!';
+        statusTitle.style.color = '#047857';
+    } else {
+        statusElement.style.background = 'linear-gradient(135deg, #fef2f2 0%, #fdf2f8 100%)';
+        statusElement.style.borderColor = '#fecaca';
+        statusIcon.style.backgroundColor = '#ef4444';
+        statusTitle.textContent = 'Processing Failed';
+        statusTitle.style.color = '#dc2626';
+    }
+
+    statusMessage.textContent = message;
+}
+    // Handle radio button toggle
     function handleOptionChange() {
         if (playlistRadio.checked) {
             playlistSection.classList.remove('hidden');
             uploadSection.classList.add('hidden');
             buttonText.textContent = 'Analyze Playlist';
-            supportText.textContent = 'Supports YouTube playlists and individual video URLs';
             videoCountHelp.textContent = 'Specify how many videos to process from the playlist';
-            // Remove required from file input
             fileInput.removeAttribute('required');
-            // Add required to playlist URL
             document.getElementById('playlist-url').setAttribute('required', '');
         } else {
             playlistSection.classList.add('hidden');
             uploadSection.classList.remove('hidden');
             buttonText.textContent = 'Upload & Process';
-            supportText.textContent = 'Supports MP4, AVI, MOV, and other common video formats';
             videoCountHelp.textContent = 'Specify how many video files you want to upload';
-            // Remove required from playlist URL
             document.getElementById('playlist-url').removeAttribute('required');
-            // Add required to file input
             fileInput.setAttribute('required', '');
         }
-        
-        // Clear file info when switching options
         fileInfo.classList.add('hidden');
         fileInfo.textContent = '';
     }
 
-    // Handle file selection
+    // Show file info when selecting a file
     function handleFileChange(event) {
         const file = event.target.files[0];
         if (file) {
@@ -52,11 +67,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Event listeners
+    // When submitting the form
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+
+        fetch('/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+    console.log('Processing complete:', data);
+    showProcessingComplete(data.message, data.success);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
+    // Event listeners for radio buttons and file selection
     playlistRadio.addEventListener('change', handleOptionChange);
     uploadRadio.addEventListener('change', handleOptionChange);
     fileInput.addEventListener('change', handleFileChange);
 
-    // Initialize the form state
+    // Initialize on page load
     handleOptionChange();
 });

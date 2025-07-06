@@ -1,10 +1,15 @@
 
 from requests import post
 from json import dumps
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 class TitleCleaner:
     def __init__(self):
-        pass
+        print("Loaded API_KEY:", os.getenv("API_KEY"))
     
     def clean_and_summarize_title(self,title):
         prompt = f"""You are a title cleanup tool. Given this movie clip title:
@@ -39,7 +44,7 @@ double check the length and make sure it isnt more than 100 characters
         response = post(
             url="https://openrouter.ai/api/v1/chat/completions",
         headers={
-            "Authorization": "Bearer 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",
+            "Authorization": os.getenv("API_KEY"),
             "Content-Type": "application/json",
         },
         data=dumps({

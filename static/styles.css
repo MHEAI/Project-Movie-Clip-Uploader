@@ -246,10 +246,65 @@ body {
     color: #6b7280;
 }
 
-.hidden {
-    display: none;
+
+/* Processing Status Styles */
+.processing-status {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #dcfdf7 0%, #f0fdf4 100%);
+    border: 1px solid #a7f3d0;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: fade-in 0.5s ease-out;
 }
 
+.status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: #10b981;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.checkmark-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: white;
+}
+
+.status-content {
+    flex: 1;
+}
+
+.status-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #047857;
+    margin-bottom: 0.25rem;
+}
+
+.status-message {
+    font-size: 0.75rem;
+    color: #065f46;
+    margin: 0;
+}
+
+/* Fade-in animation for status */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 /* Responsive Design */
 @media (max-width: 480px) {
     .container {
@@ -276,4 +331,7 @@ body {
     .submit-button {
         padding: 0.625rem 1.25rem;
     }
+}
+.hidden {
+    display: none;
 }
