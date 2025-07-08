@@ -24,7 +24,8 @@ Perform these steps:
 - Normalize whitespace.
 - Add a random catchy adjective like "Epic" or "Legendary" plus the word "Scene".
 - remove the original thing and Then summarize what this entire process does in a cool, catchy tagline that includes the movie name and the clip's main premise dont over do it.
-- Append hashtags: #Shorts #MovieClips   #FilmLovers. to the very end
+- After creating the cleaned title and the short catchy tagline, append the hashtags exactly like this with no extra space or punctuation before them: " #Shorts #MovieClips #FilmLovers".
+
 
 
 

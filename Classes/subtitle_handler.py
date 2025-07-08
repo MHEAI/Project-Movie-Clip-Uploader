@@ -78,7 +78,7 @@ class SubtitleHandler:
             
             f.write("[V4+ Styles]\n")
             f.write("Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
-            f.write("Style: Default,Arial,50,&H00FFFFFF,&H00000000,1,1,0,5,50,50,100,3\n\n")
+            f.write("Style: Default,Arial,70,&H00FFFFFF,&H00000000,1,1,0,5,50,50,100,3\n\n")
             
             f.write("[Events]\n")
             f.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")

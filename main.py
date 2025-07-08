@@ -22,13 +22,13 @@ def process_form():
         playlist_url  = request.form.get("playlistUrl")
         amount_of_vids = int(request.form.get("videoCount"))
         print(amount_of_vids)
-        video_file = main(playlist_url,amount_of_vids)
+        id_list = main(playlist_url,amount_of_vids)
     
     elif option == 'upload':
         movie_file = request.files.get('movieFile')
         
         print(f"Acting like i am processing the file as the func has not been created yet: {movie_file}")
-    return jsonify({"message": "", "success": True})
+    return jsonify({"message": ("Uploaded videos with the id's of: ", id_list), "success": True})
     
         
 
@@ -43,7 +43,10 @@ def main(playlist,max_vids):
 
     info = downloader.extract_playlist(playlist)
     
+    id_list = []
+    
     for i,video in enumerate(info['entries']):
+        
         if i > max_vids:
             break
         if not video:
@@ -80,7 +83,7 @@ def main(playlist,max_vids):
         ass_file = subtitler.convert_to_ass(srt_file)
 
         subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
-        uploader.upload_to_youtube(subbed_video, title)
+        id_list.append(uploader.upload_to_youtube(subbed_video, title))
 
         utilizer.cleanup_files([
             video_file,
@@ -91,6 +94,6 @@ def main(playlist,max_vids):
             srt_file,
             ass_file
         ])
-        return video_file
+    return id_list
 if __name__ == "__main__":
     app.run(debug=True) 

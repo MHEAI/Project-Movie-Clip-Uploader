@@ -62,11 +62,10 @@ def resumable_upload(request):
 
     while response is None:
         try:
-            print("Uploading file...")
             status, response = request.next_chunk()
             if response:
                 if "id" in response:
-                    print(f"Video id '{response['id']}' was successfully uploaded.")
+                    print(f"Uploaded video with id: {response['id']} ")
                 else:
                     exit(f"Unexpected response: {response}")
         except HttpError as e:

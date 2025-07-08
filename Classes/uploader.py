@@ -32,7 +32,17 @@ class Uploader:
         "exclusive clip"
         ]
         keyword_string = ",".join(keywords)
-        
+        print("Uploading file....")
         command = ["python","upload_video.py","--file",file,"--title",title,"--description",description,"--keywords",keyword_string,"--category","24"]
-        run(command)        
+        try:
+            result = run(command, capture_output=True, text=True, check=True)
+        except Exception as e:
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+            print("RETURN CODE:", e.returncode)
+            raise
+
+        output = result.stdout
+        id = output.split("Uploaded video with id: ")[1].strip()
+        return id
             
