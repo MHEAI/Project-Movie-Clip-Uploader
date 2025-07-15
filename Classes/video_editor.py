@@ -17,7 +17,7 @@ class VideoEditor:
     def clip_video(self, video):
         try:
             with VideoFileClip(video) as clip:
-                subclip = clip.subclip(0, 60)
+                subclip = clip.subclipped(0, 60)
                 p = Path(video)
                 output_path = str(p.with_name(p.stem + "_clipped" + p.suffix))
                 if Path(output_path).exists():

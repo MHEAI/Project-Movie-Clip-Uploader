@@ -1,5 +1,6 @@
 import logging
 from flask import Flask, render_template, request, jsonify
+import asyncio
 
 from Classes.movie_handler import MovieHandler
 from Classes.subtitle_handler import SubtitleHandler
@@ -106,7 +107,8 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
         language, segments = subtitler.transcribe(audio_file)
         srt_file = subtitler.generate_srt(segments, language)
 
-        time_stamps = moviehandler.find_most_interesting_scene(srt_file)
+        time_stamps = asyncio.run(moviehandler.find_most_interesting_scene_async(srt_file))
+
 
         paths = moviehandler.clip_video(movie, time_stamps, max_vids)
         utilizer.cleanup_files([
