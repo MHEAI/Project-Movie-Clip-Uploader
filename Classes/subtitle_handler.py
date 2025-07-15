@@ -3,14 +3,16 @@ import math
 import random
 from yt_dlp.utils import sanitize_filename
 import srt
+from pydub import AudioSegment
+import os
+from io import BytesIO
 class SubtitleHandler:
     def __init__(self):
-        pass
+        self.model = WhisperModel("tiny")
     def transcribe(self,audio):
         print("Transcribing")
-        model = WhisperModel("tiny")
         try:
-            segments,info = model.transcribe(audio)
+            segments,info = self.model.transcribe(audio)
         except Exception as e:
             print(f"Error while transcribing {e}")
             
@@ -23,7 +25,7 @@ class SubtitleHandler:
             print("[%.2fs -> %.2fs] %s"
                 % (segment.start, segment.end, segment.text))
         return language[0], segments
-    
+
     def generate_srt(self,segments,language):
         def format_time(seconds):
 
