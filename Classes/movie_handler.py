@@ -1,16 +1,20 @@
 
 
-import srt 
-import datetime  
-import requests  
-import re
+import datetime
 import json
-from dotenv import load_dotenv
 import os
-import json
-from moviepy.video.io.VideoFileClip import VideoFileClip
-from pathlib import Path
 import random
+import datetime  
+import re
+from pathlib import Path
+
+import requests  
+from dotenv import load_dotenv
+import json
+from moviepy import VideoFileClip
+import srt
+
+
 load_dotenv()
 
 class MovieHandler:

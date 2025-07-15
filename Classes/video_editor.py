@@ -1,8 +1,9 @@
 from pathlib import Path
+from subprocess import run
+
 import ffmpeg
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from pathlib import Path
-from subprocess import run
+
 class VideoEditor:
     def __init__(self):
         pass

@@ -1,12 +1,13 @@
-from flask import Flask, render_template, request, flash,redirect,url_for,jsonify
-from time import sleep
-from Classes.youtube_downloader import YoutubeDownloader 
-from Classes.title_cleaner import TitleCleaner
-from Classes.video_editor import VideoEditor
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
+
+from Classes.movie_handler import MovieHandler
 from Classes.subtitle_handler import SubtitleHandler
+from Classes.title_cleaner import TitleCleaner
 from Classes.uploader import Uploader
 from Classes.utils import Utilities
-from Classes.movie_handler import MovieHandler
+from Classes.video_editor import VideoEditor
+from Classes.youtube_downloader import YoutubeDownloader
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024

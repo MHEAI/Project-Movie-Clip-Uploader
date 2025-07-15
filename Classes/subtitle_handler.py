@@ -1,11 +1,13 @@
-from faster_whisper import WhisperModel
 import math
-import random
-from yt_dlp.utils import sanitize_filename
-import srt
-from pydub import AudioSegment
 import os
+import random
 from io import BytesIO
+
+import srt
+from faster_whisper import WhisperModel
+from pydub import AudioSegment
+from yt_dlp.utils import sanitize_filename
+
 class SubtitleHandler:
     def __init__(self):
         self.model = WhisperModel("tiny")

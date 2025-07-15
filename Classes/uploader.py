@@ -1,7 +1,9 @@
-from yt_dlp.utils import DownloadError
-import yt_dlp
 import os
 from subprocess import run
+
+import yt_dlp
+from yt_dlp.utils import DownloadError
+
 class Uploader:
     def __init__(self):
         pass

@@ -1,8 +1,10 @@
 
-from requests import post
-from json import dumps
-from dotenv import load_dotenv
 import os
+
+from json import dumps
+from requests import post
+from dotenv import load_dotenv
+
 
 load_dotenv()
 
