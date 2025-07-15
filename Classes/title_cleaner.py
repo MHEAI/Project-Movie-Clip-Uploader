@@ -1,19 +1,21 @@
-
 import os
-
 from json import dumps
 from requests import post
 from dotenv import load_dotenv
-
+import logging
 
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 class TitleCleaner:
     def __init__(self):
-        print("Loaded API_KEY:", os.getenv("API_KEY"))
+        logging.info("Loaded API_KEY: %s", os.getenv("API_KEY"))
     
-    def clean_and_summarize_title(self,title):
+    def clean_and_summarize_title(self, title):
         prompt = f"""You are a title cleanup tool. Given this movie clip title:
 
 {title}
@@ -28,12 +30,7 @@ Perform these steps:
 - remove the original thing and Then summarize what this entire process does in a cool, catchy tagline that includes the movie name and the clip's main premise dont over do it.
 - After creating the cleaned title and the short catchy tagline, append the hashtags exactly like this with no extra space or punctuation before them: " #Shorts #MovieClips #FilmLovers".
 
-
-
-
 dont add asterisks
-
-
 
 dont make it more than 100 characters
 
@@ -42,28 +39,25 @@ Return only one plain string combining the cleaned title with hashtags and the t
 double check the length and make sure it isnt more than 100 characters
 """
         
-        
-        
         response = post(
             url="https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": os.getenv("API_KEY"),
-            "Content-Type": "application/json",
-        },
-        data=dumps({
-            "model": "mistralai/mistral-small-3.2-24b-instruct:free",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        })
-            
+            headers={
+                "Authorization": os.getenv("API_KEY"),
+                "Content-Type": "application/json",
+            },
+            data=dumps({
+                "model": "mistralai/mistral-small-3.2-24b-instruct:free",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            })
         )
         data = response.json()
         if "choices" not in data:
-            print("API error:", data)
+            logging.error("API error: %s", data)
             return None
         raw_title = data["choices"][0]["message"]["content"]
         
@@ -73,7 +67,5 @@ double check the length and make sure it isnt more than 100 characters
         if len(raw_title) > 100:
             raw_title = raw_title[:97] + "..."
 
-        print("Cleaned title:", repr(raw_title))
+        logging.info("Cleaned title: %r", raw_title)
         return raw_title
-    
-        

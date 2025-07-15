@@ -13,16 +13,21 @@ from dotenv import load_dotenv
 import json
 from moviepy import VideoFileClip
 import srt
+import logging
 
 
 load_dotenv()
-
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 class MovieHandler:
     def __init__(self):
         pass
     @staticmethod
     def load_chunks_from_srt(path):
-    
+        logging.info(f"Loading SRT file from {path}")
+        
         with open(path, "r", encoding="utf-8") as f:
             subtitles = list(srt.parse(f.read()))
 
@@ -52,7 +57,7 @@ class MovieHandler:
 
     @staticmethod
     def score_scene_llm(block):
-        
+        logging.info(f"Scoring Block {block}")
         prompt = f"""
     You are a movie critic.
 
@@ -83,9 +88,11 @@ class MovieHandler:
 
             extract =lambda text: float(re.search(r"(10(\.0+)?|[1-9](\.\d+)?)", text).group(0)) if re.search(r"(10(\.0+)?|[1-9](\.\d+)?)", text) else None
             score = res.json()["choices"][0]["message"]["content"].strip()
+            
             return extract(score)
 
         except Exception as e:
+            logging.error(f"LLM Error : {e}")
             print("LLM Error:", e)
             return 0  
 
@@ -98,14 +105,14 @@ class MovieHandler:
         """
 
         chunks = MovieHandler.load_chunks_from_srt(srt_path)
-        print(f"🧠 Loaded {len(chunks)} chunks.")
+        logging.info(f"🧠 Loaded {len(chunks)} chunks.")
 
         results = []
 
 
         for i, block in enumerate(chunks):
             score = MovieHandler.score_scene_llm(block)
-            print(f"[{i+1}/{len(chunks)}] {block['start']}–{block['end']} → Score: {score}")
+            logging.info(f"[{i+1}/{len(chunks)}] {block['start']}–{block['end']} → Score: {score}")
             results.append((score, block))
 
         best = sorted(results, key=lambda x: -x[0])[0]
@@ -119,6 +126,7 @@ class MovieHandler:
         return "stamps.json"
     
     def clip_video(self,video,times,max_videos):
+        logging.info(f"Clipping video {video}, With times : {times}, Maximum videos {max_videos}")
         with open(times) as f:
             data = json.load(f)
         times = [(item[1]["start"], item[1]["end"]) for item in data]

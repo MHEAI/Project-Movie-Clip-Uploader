@@ -1,27 +1,33 @@
 import math
 import os
 import random
-from io import BytesIO
 
+from io import BytesIO
 import srt
 from faster_whisper import WhisperModel
 from pydub import AudioSegment
 from yt_dlp.utils import sanitize_filename
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 class SubtitleHandler:
     def __init__(self):
         self.model = WhisperModel("tiny")
     def transcribe(self,audio):
-        print("Transcribing")
+        logging.info(f"Transcribing {audio}")
         try:
             segments,info = self.model.transcribe(audio)
         except Exception as e:
-            print(f"Error while transcribing {e}")
+            logging.error(f"Error while transcribing {e}")
             
         language = info.language
         if isinstance(language, list):
             language = language[0]  
-        print("Transcription Language",language)
+        logging.info(f"Transcription Language : {language}")
         segments = list(segments)
         for segment in segments:
             print("[%.2fs -> %.2fs] %s"
@@ -30,7 +36,6 @@ class SubtitleHandler:
 
     def generate_srt(self,segments,language):
         def format_time(seconds):
-
             hours = math.floor(seconds / 3600)
             seconds %= 3600
             minutes = math.floor(seconds / 60)
@@ -40,8 +45,8 @@ class SubtitleHandler:
             formatted_time = f"{hours:02d}:{minutes:02d}:{seconds:01d},{milliseconds:03d}"
 
             return formatted_time
-        print("Generating SRT File")
-        print("DEBUG: language type:", type(language), "value:", language)
+        logging.info(f"Generating SRT File from lang {language}")
+            
         if isinstance(language, list):
             language = language[0]
         subtitle_file =  f"{sanitize_filename(language)}_{random.randint(1000,9999)}.srt"
@@ -71,7 +76,7 @@ class SubtitleHandler:
             centiseconds = int(round(milliseconds / 10))
             return f"{hours}:{minutes:02d}:{seconds:02d}.{centiseconds:02d}"
         
-        print("Converting SRT File To ass")
+        logging.info(f"Converting SRT File To ass")
         ass_file = "STYLED" + srt_file
         with open(srt_file,"r", encoding="utf-8") as f:
             subtitles = list(srt.parse(f.read()))

@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
+import logging
+from flask import Flask, render_template, request, jsonify
 
 from Classes.movie_handler import MovieHandler
 from Classes.subtitle_handler import SubtitleHandler
@@ -8,6 +9,10 @@ from Classes.utils import Utilities
 from Classes.video_editor import VideoEditor
 from Classes.youtube_downloader import YoutubeDownloader
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024
@@ -16,29 +21,23 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024
 def index():
     return render_template('index.html')
 
-@app.route('/process', methods = ['POST','GET'])
+@app.route('/process', methods=['POST', 'GET'])
 def process_form():
     option = request.form.get('option')
     amount_of_vids = int(request.form.get("videoCount"))
     if option == 'playlist':
         playlist_url  = request.form.get("playlistUrl")
-        id_list = main(playlist_url,amount_of_vids,"playlist")
-    
+        id_list = main(playlist_url, amount_of_vids, "playlist")
     elif option == 'upload':
-        print(amount_of_vids)
+        logging.info(f"Amount of vids requested: {amount_of_vids}")
         movie = request.files.get("movieFile")
         movie.save("movie.mp4")
-        print(movie)
-        id_list = main(type = "movie", movie = "movie.mp4", max_vids=amount_of_vids)
-        
-        
+        logging.info(f"Uploaded movie file: {movie}")
+        id_list = main(type="movie", movie="movie.mp4", max_vids=amount_of_vids)
         
     return jsonify({"message": ("Uploaded videos with the id's of: ", id_list), "success": True})
-    
-        
 
-def main(playlist = None,max_vids = 0 ,type = None,movie = None):
-
+def main(playlist=None, max_vids=0, type=None, movie=None):
     downloader = YoutubeDownloader()
     title_cleaner = TitleCleaner()
     editor = VideoEditor()
@@ -47,10 +46,10 @@ def main(playlist = None,max_vids = 0 ,type = None,movie = None):
     utilizer = Utilities()
     moviehandler = MovieHandler()
     id_list = []
+
     if type == "playlist":
         info = downloader.extract_playlist(playlist)
-        for i,video in enumerate(info['entries']):
-            
+        for i, video in enumerate(info['entries']):
             if i > max_vids:
                 break
             if not video:
@@ -59,7 +58,7 @@ def main(playlist = None,max_vids = 0 ,type = None,movie = None):
             try:
                 video = downloader.extract_video_info(video["webpage_url"])
             except Exception as e:
-                print(f"Skipped video because it could not be fetched: {e}")
+                logging.warning(f"Skipped video because it could not be fetched: {e}")
                 continue
 
             if (
@@ -67,16 +66,16 @@ def main(playlist = None,max_vids = 0 ,type = None,movie = None):
                 or video.get("is_private")
                 or video.get("availability") == "unavailable"
             ):
-                print(f"Skipped {video.get('id')} because it is private or unavailable")
+                logging.info(f"Skipped {video.get('id')} because it is private or unavailable")
                 continue
 
             title = title_cleaner.clean_and_summarize_title(video.get("title"))
             video_file = downloader.download_video(video["webpage_url"])
-            print("Download returned:", video_file)
+            logging.info(f"Download returned: {video_file}")
 
             clipped_file = editor.clip_video(video_file)
             if clipped_file is None:
-                print("Skipping because clip_video failed.")
+                logging.warning("Skipping because clip_video failed.")
                 continue
 
             portrait_clipped_file = editor.convert_to_portrait(clipped_file)
@@ -97,21 +96,19 @@ def main(playlist = None,max_vids = 0 ,type = None,movie = None):
                 audio_file,
                 srt_file,
                 ass_file
-                ])
+            ])
         return id_list
-    
-    
-    
+
     elif type == "movie":
-        print("analyzing movie")
+        logging.info("Analyzing movie")
         audio_file = editor.extract_audio(movie)
-        
-        language,segments = subtitler.transcribe(audio_file)
+
+        language, segments = subtitler.transcribe(audio_file)
         srt_file = subtitler.generate_srt(segments, language)
-        
+
         time_stamps = moviehandler.find_most_interesting_scene(srt_file)
-        
-        paths = moviehandler.clip_video(movie,time_stamps,max_vids)
+
+        paths = moviehandler.clip_video(movie, time_stamps, max_vids)
         utilizer.cleanup_files([
             audio_file,
             srt_file,
@@ -126,19 +123,20 @@ def main(playlist = None,max_vids = 0 ,type = None,movie = None):
             ass_file = subtitler.convert_to_ass(srt_file)
 
             subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
-            
-            id_list.append(uploader.upload_to_youtube(subbed_video,r"#ShortFilm #MovieClip #EpicMoment #FilmLovers #Cinematic #DramaScene #MustWatch #Shorts #Viral"))
+
+            id_list.append(uploader.upload_to_youtube(
+                subbed_video,
+                r"#ShortFilm #MovieClip #EpicMoment #FilmLovers #Cinematic #DramaScene #MustWatch #Shorts #Viral"
+            ))
             utilizer.cleanup_files([
-                    portrait_clipped_file,
-                    audio_file,
-                    srt_file,
-                    ass_file,
-                    subbed_video
-                    ])
-        
+                portrait_clipped_file,
+                audio_file,
+                srt_file,
+                ass_file,
+                subbed_video
+            ])
+
         return id_list
-    
-    
-    
+
 if __name__ == "__main__":
-    app.run(debug=True) 
+    app.run(debug=True)
