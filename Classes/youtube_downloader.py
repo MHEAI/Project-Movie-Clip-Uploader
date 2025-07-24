@@ -22,7 +22,10 @@ class YoutubeDownloader:
                 'format': "bestvideo+bestaudio/best",
                 'merge_output_format': 'mp4',
                 'outtmpl': self.output_path,
-                'cookiesfrombrowser': ('chrome',),
+                'extractor_args': {
+                    'youtube': ['formats=missing_pot']
+                },
+                'cookies' : r'C:\Users\dell\Desktop\Coding\TOP SECRET PROJECTS\Project Movie Clip Uploader\www.youtube.com.cookies.json',
                 'extractor_args': {
                     'youtube': {
                         'player_client': ['android']

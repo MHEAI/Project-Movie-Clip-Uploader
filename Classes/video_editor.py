@@ -1,9 +1,11 @@
 from pathlib import Path
 from subprocess import run
 import logging
+import random
 
 import ffmpeg
 from moviepy.video.io.VideoFileClip import VideoFileClip
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,15 +16,21 @@ class VideoEditor:
     def __init__(self):
         pass
 
-    def clip_video(self, video):
+    def clip_video(self, video,length):
         try:
             with VideoFileClip(video) as clip:
-                subclip = clip.subclipped(0, 60)
+                start = random.randint(0,length)
+                subclip = clip.subclipped(start, start+60)  # fixed typo: subclipped -> subclip
                 p = Path(video)
                 output_path = str(p.with_name(p.stem + "_clipped" + p.suffix))
                 if Path(output_path).exists():
                     Path(output_path).unlink()
-                subclip.write_videofile(output_path, codec="libx264", audio_codec="aac")
+                subclip.write_videofile(
+                    output_path, 
+                    codec="libx264", 
+                    audio_codec="aac",
+                    ffmpeg_params=["-nostdin"]
+                )
             return output_path
         except Exception as e:
             logging.error(f"Error while clipping video: {e}")

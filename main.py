@@ -74,7 +74,7 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
             video_file = downloader.download_video(video["webpage_url"])
             logging.info(f"Download returned: {video_file}")
 
-            clipped_file = editor.clip_video(video_file)
+            clipped_file = editor.clip_video(video_file,video["duration"])
             if clipped_file is None:
                 logging.warning("Skipping because clip_video failed.")
                 continue
