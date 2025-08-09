@@ -1,6 +1,10 @@
 import logging
-from flask import Flask, render_template, request, jsonify
 import asyncio
+import argparse 
+import sys
+
+from flask import Flask, render_template, request, jsonify
+
 
 from Classes.movie_handler import MovieHandler
 from Classes.subtitle_handler import SubtitleHandler
@@ -141,4 +145,12 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
         return id_list
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("playlist", type=str, nargs="?", help="The playlist URL to be processed")
+    parser.add_argument("max_vids",type=int, nargs="?", help="Amount of vidoes to process")
+    args = parser.parse_args()
+
+    if args.playlist:
+        main(playlist=args.playlist, max_vids=args.max_vids, type="playlist")
+    else:
+        app.run(debug=True)
