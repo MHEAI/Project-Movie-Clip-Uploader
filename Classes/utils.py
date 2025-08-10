@@ -1,6 +1,7 @@
 import os
 import logging
 
+from pathlib import Path
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -20,3 +21,8 @@ class Utilities:
                     logging.error(f"Error deleting {path}: {e}")
             else:
                 logging.info(f"File not found, skipping: {path}")
+    def cleanup_folder(self,folder_path):
+        folder_path = Path(folder_path)
+        for file in folder_path.iterdir():
+            if file.is_file():
+                file.unlink()

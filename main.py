@@ -53,6 +53,7 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
     id_list = []
 
     if type == "playlist":
+        utilizer.cleanup_folder("Movie Clips")
         info = downloader.extract_playlist(playlist)
         for i, video in enumerate(info['entries']):
             if i > max_vids:
@@ -91,8 +92,11 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
             ass_file = subtitler.convert_to_ass(srt_file)
 
             subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
+            uploader.upload_to_tiktok(subbed_video,title)
             id_list.append(uploader.upload_to_youtube(subbed_video, title))
-
+            
+            
+            
             utilizer.cleanup_files([
                 video_file,
                 clipped_file,

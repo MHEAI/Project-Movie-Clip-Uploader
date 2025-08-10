@@ -65,9 +65,10 @@ def resumable_upload(request):
             status, response = request.next_chunk()
             if response:
                 if "id" in response:
-                    print(f"Uploaded video with id: {response['id']} ")
+                    print(response["id"])  # Only print the raw video ID
                 else:
-                    exit(f"Unexpected response: {response}")
+                    print(f"ERROR: No video ID in response: {response}")
+                    exit(1)
         except HttpError as e:
             if e.resp.status in RETRIABLE_STATUS_CODES:
                 error = f"Retriable HTTP error {e.resp.status}: {e.content}"
@@ -103,3 +104,4 @@ if __name__ == "__main__":
         initialize_upload(youtube, args)
     except HttpError as e:
         print(f"HTTP error {e.resp.status}:\n{e.content}")
+        exit(1)
