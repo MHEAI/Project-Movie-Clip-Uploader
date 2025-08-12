@@ -26,10 +26,11 @@ class VideoEditor:
                 if Path(output_path).exists():
                     Path(output_path).unlink()
                 subclip.write_videofile(
-                    output_path, 
-                    codec="libx264", 
+                    output_path,
+                    codec="libx264",
                     audio_codec="aac",
-                    ffmpeg_params=["-nostdin"]
+                    preset="medium",
+                    ffmpeg_params=["-crf", "20", "-threads", "4", "-nostdin"]
                 )
             return output_path
         except Exception as e:
@@ -49,12 +50,15 @@ class VideoEditor:
         p = Path(video_file)
         output_path = str(p.with_name(p.stem + "_portrait" + p.suffix))
         command = [
-            "ffmpeg",
-            "-i", video_file,
-            "-vf", "crop=ih*9/16:ih,scale=1080:1920",
-            "-c:a", "copy",
-            output_path
-        ]
+                    "ffmpeg",
+                    "-i", video_file,
+                    "-vf", "crop=ih*9/16:ih,scale=1080:1920",
+                    "-c:v", "libx264",
+                    "-crf", "20",
+                    "-preset", "medium",
+                    "-c:a", "copy",
+                    output_path
+                ]
         run(command)
         return output_path
 
