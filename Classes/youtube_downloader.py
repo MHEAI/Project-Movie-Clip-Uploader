@@ -19,19 +19,17 @@ class YoutubeDownloader:
     def download_video(self, url):
         try:
             ydl_opts = {
-                'format': "bestvideo+bestaudio/best",
-                'merge_output_format': 'mp4',
-                'outtmpl': self.output_path,
-                'extractor_args': {
-                    'youtube': ['formats=missing_pot']
-                },
-                'cookies' : r'C:\Users\dell\Desktop\Coding\TOP SECRET PROJECTS\Project Movie Clip Uploader\www.youtube.com.cookies.json',
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['android']
-                    }
-    }
+            'format': "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]",
+            'merge_output_format': 'mp4',
+            'outtmpl': self.output_path,
+            'cookies': r'C:\Users\dell\Desktop\Coding\TOP SECRET PROJECTS\Project Movie Clip Uploader\www.youtube.com.cookies.json',
+            'extractor_args': {
+                'youtube': {
+                    'player-client': 'mweb'   # or 'web', 'android' etc.
+                }
             }
+        }
+
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 return ydl.prepare_filename(info)
