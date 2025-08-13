@@ -1,10 +1,10 @@
 import logging
 import asyncio
-import argparse 
-import sys
+import argparse
+
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, render_template, request, jsonify
-
 
 from Classes.movie_handler import MovieHandler
 from Classes.subtitle_handler import SubtitleHandler
@@ -42,116 +42,109 @@ def process_form():
         
     return jsonify({"message": ("Uploaded videos with the id's of: ", id_list), "success": True})
 
-def main(playlist=None, max_vids=0, type=None, movie=None):
-    downloader = YoutubeDownloader()
-    title_cleaner = TitleCleaner()
+def process_video(file_path, title=None):
     editor = VideoEditor()
     subtitler = SubtitleHandler()
     uploader = Uploader()
     utilizer = Utilities()
+
+    portrait_clipped_file = editor.convert_to_portrait(file_path)
+    audio_file = editor.extract_audio(portrait_clipped_file)
+
+    language, segments = subtitler.transcribe(audio_file)
+    srt_file = subtitler.generate_srt(segments, language)
+    ass_file = subtitler.convert_to_ass(srt_file)
+
+    subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
+
+    if title is None:
+        title = r"#ShortFilm #MovieClip #EpicMoment #FilmLovers #Cinematic #DramaScene #MustWatch #Shorts #Viral"
+        
+    with ThreadPoolExecutor() as executor:
+        future_youtube = executor.submit(uploader.upload_to_youtube, subbed_video, title)
+        future_tiktok = executor.submit(uploader.upload_to_tiktok, subbed_video, title)
+        
+        video_id = future_youtube.result()
+        future_tiktok.result()
+
+    utilizer.cleanup_files([
+        file_path,
+        portrait_clipped_file,
+        audio_file,
+        srt_file,
+        ass_file,
+        subbed_video
+    ])
+    if video_id:  
+        return video_id
+
+def main(playlist=None, max_vids=0, type=None, movie=None):
+    downloader = YoutubeDownloader()
+    title_cleaner = TitleCleaner()
     moviehandler = MovieHandler()
+    utilizer = Utilities()
+
     id_list = []
 
     if type == "playlist":
         utilizer.cleanup_folder("Movie Clips")
         info = downloader.extract_playlist(playlist)
+
         for i, video in enumerate(info['entries']):
-            if i > max_vids:
+            if i >= max_vids:
                 break
             if not video:
                 continue
 
             try:
-                video = downloader.extract_video_info(video["webpage_url"])
+                video_info = downloader.extract_video_info(video["webpage_url"])
             except Exception as e:
                 logging.warning(f"Skipped video because it could not be fetched: {e}")
                 continue
 
-            if (
-                video.get("availability") == "private"
-                or video.get("is_private")
-                or video.get("availability") == "unavailable"
-            ):
-                logging.info(f"Skipped {video.get('id')} because it is private or unavailable")
+            if video_info.get("availability") in ("private", "unavailable") or video_info.get("is_private"):
+                logging.info(f"Skipped {video_info.get('id')} because it is private or unavailable")
                 continue
 
-            title = title_cleaner.clean_and_summarize_title(video.get("title"))
-            video_file = downloader.download_video(video["webpage_url"])
-            logging.info(f"Download returned: {video_file}")
+            title = title_cleaner.clean_and_summarize_title(video_info.get("title"))
+            video_file = downloader.download_video(video_info["webpage_url"])
+            logging.info(f"Downloaded: {video_file}")
 
-            clipped_file = editor.clip_video(video_file,video["duration"])
+            clipped_file = VideoEditor().clip_video(video_file, video_info["duration"])
             if clipped_file is None:
                 logging.warning("Skipping because clip_video failed.")
                 continue
 
-            portrait_clipped_file = editor.convert_to_portrait(clipped_file)
-            audio_file = editor.extract_audio(portrait_clipped_file)
+            video_id = process_video(clipped_file, title)
+            id_list.append(video_id)
 
-            language, segments = subtitler.transcribe(audio_file)
-            srt_file = subtitler.generate_srt(segments, language)
-            ass_file = subtitler.convert_to_ass(srt_file)
-
-            subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
-            uploader.upload_to_tiktok(subbed_video,title)
-            id_list.append(uploader.upload_to_youtube(subbed_video, title))
-            
-            
-            
-            utilizer.cleanup_files([
-                video_file,
-                clipped_file,
-                portrait_clipped_file,
-                subbed_video,
-                audio_file,
-                srt_file,
-                ass_file
-            ])
-        return id_list
+            utilizer.cleanup_files([video_file])
 
     elif type == "movie":
         logging.info("Analyzing movie")
-        audio_file = editor.extract_audio(movie)
+        editor = VideoEditor()
+        subtitler = SubtitleHandler()
+        uploader = Uploader()
 
+        audio_file = editor.extract_audio(movie)
         language, segments = subtitler.transcribe(audio_file)
         srt_file = subtitler.generate_srt(segments, language)
 
         time_stamps = asyncio.run(moviehandler.find_most_interesting_scene_async(srt_file))
-
+        utilizer.cleanup_files([audio_file, srt_file])
 
         paths = moviehandler.clip_video(movie, time_stamps, max_vids)
-        utilizer.cleanup_files([
-            audio_file,
-            srt_file,
-            time_stamps
-        ])
+
         for path in paths:
-            portrait_clipped_file = editor.convert_to_portrait(path)
-            audio_file = editor.extract_audio(path)
+            video_id = process_video(path)
+            id_list.append(video_id)
 
-            language, segments = subtitler.transcribe(audio_file)
-            srt_file = subtitler.generate_srt(segments, language)
-            ass_file = subtitler.convert_to_ass(srt_file)
-
-            subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
-
-            id_list.append(uploader.upload_to_youtube(
-                subbed_video,
-                r"#ShortFilm #MovieClip #EpicMoment #FilmLovers #Cinematic #DramaScene #MustWatch #Shorts #Viral"
-            ))
-            utilizer.cleanup_files([
-                portrait_clipped_file,
-                audio_file,
-                srt_file,
-                ass_file,
-                subbed_video
-            ])
-
-        return id_list
+    return id_list
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("playlist", type=str, nargs="?", help="The playlist URL to be processed")
-    parser.add_argument("max_vids",type=int, nargs="?", help="Amount of vidoes to process")
+    parser.add_argument("max_vids",type=int, nargs="?", help="Amount of videos to process")
     args = parser.parse_args()
 
     if args.playlist:
