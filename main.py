@@ -2,7 +2,7 @@ import logging
 import asyncio
 import argparse
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Flask, render_template, request, jsonify
 
@@ -13,6 +13,8 @@ from Classes.uploader import Uploader
 from Classes.utils import Utilities
 from Classes.video_editor import VideoEditor
 from Classes.youtube_downloader import YoutubeDownloader
+from Classes.workflows import Workflows
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,47 +44,18 @@ def process_form():
         
     return jsonify({"message": ("Uploaded videos with the id's of: ", id_list), "success": True})
 
-def process_video(file_path, title=None):
-    editor = VideoEditor()
-    subtitler = SubtitleHandler()
-    uploader = Uploader()
-    utilizer = Utilities()
+from concurrent.futures import ThreadPoolExecutor
 
-    portrait_clipped_file = editor.convert_to_portrait(file_path)
-    audio_file = editor.extract_audio(portrait_clipped_file)
 
-    language, segments = subtitler.transcribe(audio_file)
-    srt_file = subtitler.generate_srt(segments, language)
-    ass_file = subtitler.convert_to_ass(srt_file)
 
-    subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
-
-    if title is None:
-        title = r"#ShortFilm #MovieClip #EpicMoment #FilmLovers #Cinematic #DramaScene #MustWatch #Shorts #Viral"
-        
-    with ThreadPoolExecutor() as executor:
-        future_youtube = executor.submit(uploader.upload_to_youtube, subbed_video, title)
-        future_tiktok = executor.submit(uploader.upload_to_tiktok, subbed_video, title)
-        
-        video_id = future_youtube.result()
-        future_tiktok.result()
-
-    utilizer.cleanup_files([
-        file_path,
-        portrait_clipped_file,
-        audio_file,
-        srt_file,
-        ass_file,
-        subbed_video
-    ])
-    if video_id:  
-        return video_id
 
 def main(playlist=None, max_vids=0, type=None, movie=None):
     downloader = YoutubeDownloader()
     title_cleaner = TitleCleaner()
     moviehandler = MovieHandler()
     utilizer = Utilities()
+    workflows = Workflows()
+
 
     id_list = []
 
@@ -90,35 +63,17 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
         utilizer.cleanup_folder("Movie Clips")
         info = downloader.extract_playlist(playlist)
 
-        for i, video in enumerate(info['entries']):
-            if i >= max_vids:
-                break
-            if not video:
-                continue
-
-            try:
-                video_info = downloader.extract_video_info(video["webpage_url"])
-            except Exception as e:
-                logging.warning(f"Skipped video because it could not be fetched: {e}")
-                continue
-
-            if video_info.get("availability") in ("private", "unavailable") or video_info.get("is_private"):
-                logging.info(f"Skipped {video_info.get('id')} because it is private or unavailable")
-                continue
-
-            title = title_cleaner.clean_and_summarize_title(video_info.get("title"))
-            video_file = downloader.download_video(video_info["webpage_url"])
-            logging.info(f"Downloaded: {video_file}")
-
-            clipped_file = VideoEditor().clip_video(video_file, video_info["duration"])
-            if clipped_file is None:
-                logging.warning("Skipping because clip_video failed.")
-                continue
-
-            video_id = process_video(clipped_file, title)
-            id_list.append(video_id)
-
-            utilizer.cleanup_files([video_file])
+        
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            for i, video in enumerate(info['entries']):
+                if i >= max_vids or not video:
+                    continue
+                futures.append(executor.submit(workflows.process, video))
+            for future in as_completed(futures):
+                video_id = future.result()
+                if video_id:
+                    id_list.append(video_id)
 
     elif type == "movie":
         logging.info("Analyzing movie")
@@ -136,7 +91,7 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
         paths = moviehandler.clip_video(movie, time_stamps, max_vids)
 
         for path in paths:
-            video_id = process_video(path)
+            video_id = workflows.process(path)
             id_list.append(video_id)
 
     return id_list
@@ -148,6 +103,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.playlist:
-        main(playlist=args.playlist, max_vids=args.max_vids, type="playlist")
+        main(playlist=args.playlist, max_vids=args.max_vids or 10, type="playlist")
     else:
         app.run(debug=True)

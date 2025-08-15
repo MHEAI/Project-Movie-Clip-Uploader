@@ -1,6 +1,7 @@
 import os
 import logging
 import subprocess
+
 from tiktok_uploader.upload import upload_video
 
 logging.basicConfig(
@@ -45,21 +46,30 @@ Catch the coolest scenes, epic fights, and unforgettable moments from your favor
                 logging.error(f"Upload succeeded but no video ID returned. Output: {result.stdout}")
                 return None
         except subprocess.CalledProcessError as e:
+            if "uploadLimitExceeded" in (e.stdout or ""):
+                logging.error("YouTube upload limit exceeded. Skipping this upload.")
+                logging.error(f"STDOUT: {e.stdout}")
+                logging.error(f"STDERR: {e.stderr}")
+                return None
             logging.error("Upload failed")
             logging.error(f"Return code: {e.returncode}")
             logging.error(f"STDOUT: {e.stdout}")
             logging.error(f"STDERR: {e.stderr}")
             raise
 
-    def upload_to_tiktok(self, file, title):
-        safe_text = ''.join(c for c in title if ord(c) <= 0xFFFF)
+    def upload_to_tiktok(self, file):
         logging.info(f"Uploading file({file}) to TikTok...")
         try:
             upload_video(
                 filename=file,
-                description= title + self.description,
+                description= r"#InsaneScene #fyp #Movieclips ",
                 sessionid=os.getenv("SESSION_ID")
             )
         except Exception as e:
             logging.error(f"Error while uploading to TikTok: {e}")
             
+            
+            
+            
+# u= Uploader()
+# u.upload_to_tiktok("video.mp4","Cool Penguins scene")

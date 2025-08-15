@@ -20,7 +20,7 @@ class VideoEditor:
         try:
             with VideoFileClip(video) as clip:
                 start = random.randint(0,length)
-                subclip = clip.subclipped(start, start+60)  # fixed typo: subclipped -> subclip
+                subclip = clip.subclipped(start, start+60)  
                 p = Path(video)
                 output_path = str(p.with_name(p.stem + "_clipped" + p.suffix))
                 if Path(output_path).exists():
