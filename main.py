@@ -44,11 +44,6 @@ def process_form():
         
     return jsonify({"message": ("Uploaded videos with the id's of: ", id_list), "success": True})
 
-from concurrent.futures import ThreadPoolExecutor
-
-
-
-
 def main(playlist=None, max_vids=0, type=None, movie=None):
     downloader = YoutubeDownloader()
     title_cleaner = TitleCleaner()
@@ -67,7 +62,7 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = []
             for i, video in enumerate(info['entries']):
-                if i >= max_vids or not video:
+                if i > max_vids or not video:
                     continue
                 futures.append(executor.submit(workflows.process, video))
             for future in as_completed(futures):
@@ -77,19 +72,8 @@ def main(playlist=None, max_vids=0, type=None, movie=None):
 
     elif type == "movie":
         logging.info("Analyzing movie")
-        editor = VideoEditor()
-        subtitler = SubtitleHandler()
-        uploader = Uploader()
 
-        audio_file = editor.extract_audio(movie)
-        language, segments = subtitler.transcribe(audio_file)
-        srt_file = subtitler.generate_srt(segments, language)
-
-        time_stamps = asyncio.run(moviehandler.find_most_interesting_scene_async(srt_file))
-        utilizer.cleanup_files([audio_file, srt_file])
-
-        paths = moviehandler.clip_video(movie, time_stamps, max_vids)
-
+        paths = workflows.edit_movie(movie,max_vids)
         for path in paths:
             video_id = workflows.process(path)
             id_list.append(video_id)
@@ -103,6 +87,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.playlist:
-        main(playlist=args.playlist, max_vids=args.max_vids or 10, type="playlist")
+        main(playlist=args.playlist, max_vids=args.max_vids or 2, type="playlist")
     else:
         app.run(debug=True)

@@ -5,10 +5,11 @@ from Classes.uploader import Uploader
 from Classes.utils import Utilities
 from Classes.video_editor import VideoEditor
 from Classes.youtube_downloader import YoutubeDownloader
+from Classes.movie_handler import MovieHandler
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-
+import asyncio
 class Workflows:
     def __init__(self):
         self.downloader = YoutubeDownloader()
@@ -18,6 +19,18 @@ class Workflows:
         self.subtitler = SubtitleHandler()
         self.uploader = Uploader()
         self.utilizer = Utilities()
+        self.moviehandler = MovieHandler()
+    def edit_movie(self,movie,max_vids):
+        audio_file = self.editor.extract_audio(movie)
+        language, segments = self.subtitler.transcribe(audio_file)
+        srt_file = self.subtitler.generate_srt(segments, language)
+
+        time_stamps = asyncio.run(self.moviehandler.find_most_interesting_scene_async(srt_file))
+        self.utilizer.cleanup_files([audio_file, srt_file])
+
+        paths = self.moviehandler.clip_video(movie, time_stamps, max_vids)
+        
+        return paths
     def edit_and_upload(self,file_path, title=None):
         editor = VideoEditor()
         subtitler = SubtitleHandler()
