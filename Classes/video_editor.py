@@ -6,6 +6,7 @@ import random
 import ffmpeg
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
+from Classes.utils import Utilities
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +15,7 @@ logging.basicConfig(
 
 class VideoEditor:
     def __init__(self):
-        pass
+        self.utilities = Utilities()
 
     def clip_video(self, video,length):
         try:
@@ -35,6 +36,7 @@ class VideoEditor:
             return output_path
         except Exception as e:
             logging.error(f"Error while clipping video: {e}")
+            self.utilizer.cleanup_folder("Movie Clips")
             return None
 
     def extract_audio(self, video_path):
