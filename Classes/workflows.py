@@ -18,7 +18,6 @@ class Workflows:
         self.editor = VideoEditor()
         self.subtitler = SubtitleHandler()
         self.uploader = Uploader()
-        self.utilizer = Utilities()
         self.moviehandler = MovieHandler()
     def edit_movie(self,movie,max_vids):
         audio_file = self.editor.extract_audio(movie)
@@ -45,8 +44,7 @@ class Workflows:
             audio_file = future_audio_file.result()
 
         language, segments = subtitler.transcribe(audio_file)
-        srt_file = subtitler.generate_srt(segments, language)
-        ass_file = subtitler.convert_to_ass(srt_file)
+        ass_file = subtitler.generate_ass(segments,language)
 
         subbed_video = editor.burn_subtitles(portrait_clipped_file, ass_file, language)
 
@@ -61,7 +59,6 @@ class Workflows:
         utilizer.cleanup_files([file_path,
                                             portrait_clipped_file,
                                             audio_file,
-                                            srt_file,
                                             ass_file,
                                             subbed_video])
         if video_id:

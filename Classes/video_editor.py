@@ -15,7 +15,7 @@ logging.basicConfig(
 
 class VideoEditor:
     def __init__(self):
-        self.utilities = Utilities()
+        self.utilizer = Utilities()
 
     def clip_video(self, video,length):
         try:
