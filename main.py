@@ -42,8 +42,6 @@ def process_form():
 
 def main(playlist=None, max_vids=0, type=None, movie=None):
     downloader = YoutubeDownloader()
-    title_cleaner = TitleCleaner()
-    moviehandler = MovieHandler()
     utilizer = Utilities()
     workflows = Workflows()
 
