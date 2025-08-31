@@ -21,8 +21,12 @@ class Utilities:
                     logging.error(f"Error deleting {path}: {e}")
             else:
                 logging.info(f"File not found, skipping: {path}")
-    def cleanup_folder(self,folder_path):
+    def cleanup_folder(self, folder_path):
         folder_path = Path(folder_path)
         for file in folder_path.iterdir():
-            if file.is_file():
-                file.unlink()
+            if file.is_file() and not str(file).endswith('.part'):
+                try:
+                    file.unlink()
+                    logging.info(f"Deleted file: {file}")
+                except Exception as e:
+                    logging.error(f"Error deleting {file}: {e}")
