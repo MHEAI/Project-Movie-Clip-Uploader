@@ -20,8 +20,15 @@ class VideoEditor:
     def clip_video(self, video,length):
         try:
             with VideoFileClip(video) as clip:
-                start = random.randint(0,length)
-                subclip = clip.subclipped(start, start+60)  
+                duration = clip.duration
+                if duration <= 60:
+                    start = 0
+                    end = duration
+                else:
+                    max_start = duration - 60
+                    start  = random.uniform(0,max_start)
+                    end = start+60
+                subclip = clip.subclipped(start, end)  
                 p = Path(video)
                 output_path = str(p.with_name(p.stem + "_clipped" + p.suffix))
                 if Path(output_path).exists():
