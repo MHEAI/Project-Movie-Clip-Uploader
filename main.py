@@ -3,7 +3,8 @@ import argparse
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask
+from Flask_Handler.flask_handler import routes
 
 from Classes.utils import Utilities
 from Classes.youtube_downloader import YoutubeDownloader
@@ -17,26 +18,7 @@ logging.basicConfig(
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    return render_template('index.html')
-
-@app.route('/process', methods=['POST', 'GET'])
-def process_form():
-    option = request.form.get('option')
-    amount_of_vids = int(request.form.get("videoCount"))
-    if option == 'playlist':
-        playlist_url  = request.form.get("playlistUrl")
-        id_list = main(playlist_url, amount_of_vids, "playlist")
-    elif option == 'upload':
-        logging.info(f"Amount of vids requested: {amount_of_vids}")
-        movie = request.files.get("movieFile")
-        movie.save("movie.mp4")
-        logging.info(f"Uploaded movie file: {movie}")
-        id_list = main(type="movie", movie="movie.mp4", max_vids=amount_of_vids)
-        
-    return jsonify({"message": ("Uploaded videos with the id's of: ", id_list), "success": True})
+app.register_blueprint(routes)
 
 def main(playlist=None, max_vids=0, type=None, movie=None):
     downloader = YoutubeDownloader()
