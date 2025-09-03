@@ -5,8 +5,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Flask, render_template, request, jsonify
 
-from Classes.movie_handler import MovieHandler
-from Classes.title_cleaner import TitleCleaner
 from Classes.utils import Utilities
 from Classes.youtube_downloader import YoutubeDownloader
 from Classes.workflows import Workflows
