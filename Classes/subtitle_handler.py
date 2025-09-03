@@ -95,8 +95,8 @@ def burn_subtitles(video, subtitle_file, language):
 
 
 # Example usage
-s = SubtitleHandler()
-language, segments = s.transcribe("video.opus")
-if segments:
-    ass_file = s.generate_ass(segments, language)
-    burn_subtitles("video.mp4", ass_file, language)
+# s = SubtitleHandler()
+# language, segments = s.transcribe("video.opus")
+# if segments:
+#     ass_file = s.generate_ass(segments, language)
+#     burn_subtitles("video.mp4", ass_file, language)
